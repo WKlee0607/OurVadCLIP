@@ -170,9 +170,9 @@ def train(model, train_loader, test_loader, args, label_map: dict, device, rank)
 
             ## EMA Update
             m = momentum_schedule[it]
+            # ver4
             update_ema(student=model.av_classifier, ema_model=model.visual_classifier, decay=m)
             update_ema(student=model.fuse_LGT, ema_model=model.video_LGT, decay=m)
-                    
             
             if step % 4800 == 0 and step != 0:
                 print(f"Epoch {e+1}, Step {step}:")
