@@ -158,14 +158,15 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
                 
                 # 중간 디버깅 평가: 테스트 데이터셋으로 AUC, AP, mAP 출력
                 print("  --> Running mid-epoch evaluation ...")
-                auc, ap, mAP = test(av_model, test_loader, args.visual_length, prompt_text, gt, gtsegments, gtlabels, device)
+                #auc, ap, mAP = test(av_model, test_loader, args.visual_length, prompt_text, gt, gtsegments, gtlabels, device)
+                auc, ap, mAP = test(av_model, v_model, test_loader, args.visual_length, prompt_text, gt, gtsegments, gtlabels, device)
                 sys.stdout.write(f"      [Mid-Epoch] AUC: {auc:.4f}, AP: {ap:.4f}, mAP: {mAP:.4f} \n")
                 sys.stdout.flush()
-
+        """
         m = cosine_scheduler(base_value=args.m, final_value=1.0, curr_epoch=e, epochs=args.max_epoch)
         print(f"Epoch {e+1}: Applying self-distillation with m={m:.4f}")
 
-        """
+        
         with torch.no_grad():
             for param_av in av_model.named_parameters():
                 if 'audio' in param_av[0]:
@@ -186,7 +187,8 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
         scheduler_v.step()
         
         # Epoch 종료 후 평가
-        auc, ap, mAP = test(av_model, test_loader, args.visual_length, prompt_text, gt, gtsegments, gtlabels, device)
+        #auc, ap, mAP = test(av_model, test_loader, args.visual_length, prompt_text, gt, gtsegments, gtlabels, device)
+        auc, ap, mAP = test(av_model, v_model, test_loader, args.visual_length, prompt_text, gt, gtsegments, gtlabels, device)
         if ap > ap_best:
             ap_best = ap 
             checkpoint = {

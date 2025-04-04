@@ -50,16 +50,18 @@ def test(model, visual_model, testdataloader, maxlen, prompt_text, gt, gtsegment
             padding_mask = get_batch_mask(lengths, maxlen).to(device)
             
             # 모델 출력: logits1 대신 logits_av를 사용하도록 수정
-            _, _, logits2, logits_visual, logits_audio, logits_av = model(
-                visual, audio, padding_mask, prompt_text, lengths)
+            _, _, logits2, logits_visual, logits_audio, logits_av = model(visual, audio, padding_mask, prompt_text, lengths) # for Fine
+            v_features, v_logits = visual_model(visual, padding_mask, lengths) # for Coarse
             
             # logits_av의 shape를 1차원으로 reshape하여 확률 계산에 사용
-            logits_av = logits_av.reshape(-1)
+            # logits_av = logits_av.reshape(-1) # 원본
+            v_logits = v_logits.squeeze(-1).reshape(-1)
             logits2 = logits2.reshape(logits2.shape[0] * logits2.shape[1], logits2.shape[2])
             
             # logits_av를 sigmoid를 통해 이진 분류 확률로 변환
-            prob_av = torch.sigmoid(logits_av[0:len_cur])
             # logits2는 기존 방식대로 처리
+            # prob_av = torch.sigmoid(logits_av[0:len_cur]) # 원본
+            prob_av = torch.sigmoid(v_logits[0:len_cur])
             prob2 = (1 - logits2[0:len_cur].softmax(dim=-1)[:, 0].squeeze(-1))
 
             if i == 0:
