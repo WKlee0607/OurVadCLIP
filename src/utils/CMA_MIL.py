@@ -4,15 +4,16 @@ import numpy as np
 import torch.nn.functional as F
 from utils.InfoNCE import InfoNCE
 
-# CMAL 수정 
+
+# CMAL 수정 -> Normal한 경우엔 사용되지 않도록
 def CMAL(mmil_logits, audio_logits, visual_logits, seq_len, audio_rep, visual_rep):
     """
-    - mmil_logits: [B, 256] <= logits_av
-    - audio_logits: [B, 256, 1]
-    - visual_logits: [B, 256, 1]
-
+    - mmil_logits : [B]
+    - logits_av: [B, 256] 
+    - audio_logits: [B, 256]
+    - visual_logits: [B, 256]
+    - visual_rep, audio_rep: B, 256, 512]
     """
-
     audio_abn = torch.zeros(0).cuda()  # tensor([])
     visual_abn = torch.zeros(0).cuda()  # tensor([])
     audio_bgd = torch.zeros(0).cuda()  # tensor([])
@@ -156,8 +157,5 @@ def CMAL(mmil_logits, audio_logits, visual_logits, seq_len, audio_rep, visual_re
         loss_v2a_a2b = cmals(visual_abn, audio_abn, audio_bgd)
         loss_v2a_a2n = cmals(visual_abn, audio_abn, audio_nor)
         return loss_a2v_a2b, loss_a2v_a2n, loss_v2a_a2b, loss_v2a_a2n
+
 '''
-
-
-
-

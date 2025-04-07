@@ -1,3 +1,4 @@
+
 from collections import OrderedDict
 
 import numpy as np
@@ -255,6 +256,8 @@ class CLIPVAD(nn.Module):
         self.linear = nn.Linear(visual_width, visual_width)
         self.gelu = QuickGELU()
 
+        self.linear_audio = nn.Linear(visual_width, visual_width)
+
         self.mlp1 = nn.Sequential(OrderedDict([
             ("c_fc", nn.Linear(visual_width, visual_width * 4)),
             ("gelu", QuickGELU()),
@@ -352,6 +355,7 @@ class CLIPVAD(nn.Module):
         x_visual = self.linear(x_visual)
 
         # Process audio branch similarly
+        #x_audio = self.linear(x_audio) # 원본
         x_audio = self.linear(x_audio)
 
         return x_visual, x_audio
@@ -373,13 +377,16 @@ class CLIPVAD(nn.Module):
     def forward(self, visual, audio, padding_mask, text, lengths):
         visual_features, audio_features = self.encode_video(visual, audio, padding_mask, lengths)
         
-        logits_visual = self.classifier(visual_features + self.mlp2(visual_features))
-        logits_audio = self.audio_classifier(audio_features + self.mlp2(audio_features))
-        
+        # classifier 공유
+        logits_visual = self.classifier(visual_features + self.mlp2(visual_features)) # [B, 256, 1]
+        logits_audio = self.audio_classifier(audio_features + self.mlp2(audio_features)) # 원본
+
+        # 원본 logits_av
         combined_features = torch.cat([visual_features, audio_features], dim=-1)
         logits_av_3d = self.av_classifier(combined_features)  # 3차원 텐서 [batch_size, seq_len, 1]
+
         logits_av = logits_av_3d.squeeze(-1)  # 2차원 텐서 [batch_size, seq_len]
-        
+
         logits1 = torch.maximum(logits_visual, logits_audio)
         
         text_features_ori = self.encode_textprompt(text)
@@ -387,9 +394,10 @@ class CLIPVAD(nn.Module):
         text_features = text_features_ori
         # 3차원 logits_av_3d를 사용하여 permute
         logits_attn = logits_av_3d.permute(0, 2, 1)  # [batch_size, 1, seq_len] -> [B, 1, 256]
-        visual_attn = logits_attn @ visual_features # [B, 1, 256] x [B, 256, 512] = 
+        visual_attn = logits_attn @ visual_features # [B, 1, 256] x [B, 256, 512] = [B, 1, 512]
         visual_attn = visual_attn / visual_attn.norm(dim=-1, keepdim=True)
         visual_attn = visual_attn.expand(visual_attn.shape[0], text_features_ori.shape[0], visual_attn.shape[2])
+
         text_features = text_features_ori.unsqueeze(0)
         text_features = text_features.expand(visual_attn.shape[0], text_features.shape[1], text_features.shape[2])
         text_features = text_features + visual_attn
@@ -399,5 +407,4 @@ class CLIPVAD(nn.Module):
         text_features_norm = text_features / text_features.norm(dim=-1, keepdim=True)
         text_features_norm = text_features_norm.permute(0, 2, 1)
         logits2 = visual_features_norm @ text_features_norm.type(visual_features_norm.dtype) / 0.07
-
         return text_features_ori, logits1, logits2, logits_visual, logits_audio, logits_av
