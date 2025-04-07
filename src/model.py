@@ -386,8 +386,8 @@ class CLIPVAD(nn.Module):
         
         text_features = text_features_ori
         # 3차원 logits_av_3d를 사용하여 permute
-        logits_attn = logits_av_3d.permute(0, 2, 1)  # [batch_size, 1, seq_len]
-        visual_attn = logits_attn @ visual_features
+        logits_attn = logits_av_3d.permute(0, 2, 1)  # [batch_size, 1, seq_len] -> [B, 1, 256]
+        visual_attn = logits_attn @ visual_features # [B, 1, 256] x [B, 256, 512] = 
         visual_attn = visual_attn / visual_attn.norm(dim=-1, keepdim=True)
         visual_attn = visual_attn.expand(visual_attn.shape[0], text_features_ori.shape[0], visual_attn.shape[2])
         text_features = text_features_ori.unsqueeze(0)

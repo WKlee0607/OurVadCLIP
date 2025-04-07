@@ -115,12 +115,24 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
 
             # 샘플 레벨 예측 생성 (배치의 각 항목에 대한 단일 예측값)
             # logits_visual : [B, 256, 1]
+            # logits_av : [B, 256]
             # feat_length : [B, T]
+            
+            '''
+            # 원본
             sample_level_preds = torch.zeros(logits_visual.shape[0]).to(device)
             for j in range(logits_visual.shape[0]):
                 tmp, _ = torch.topk(logits_visual[j, 0:feat_lengths[j]].squeeze(-1), k=int(feat_lengths[j] / 16 + 1), largest=True)
                 sample_level_preds[j] = torch.sigmoid(torch.mean(tmp))
+            '''
             
+            # CMAL 수정 
+            # logits_av : [B, 256]
+            sample_level_preds = torch.zeros(logits_av.shape[0]).to(device)
+            for j in range(logits_av.shape[0]):
+                tmp, _ = torch.topk(logits_av[j, 0:feat_lengths[j]], k=int(feat_lengths[j] / 16 + 1), largest=True)
+                sample_level_preds[j] = torch.sigmoid(torch.mean(tmp))
+
             # CMAL 손실 계산 - logits_visual을 mmil_logits 대신 사용
             loss_a2v_a2b, loss_a2v_a2n, loss_v2a_a2b, loss_v2a_a2n = CMAL(
                 sample_level_preds, 
