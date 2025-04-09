@@ -118,8 +118,10 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
             # logits_visual : [B, 256, 1]
             # logits_av : [B, 256]
             # feat_length : [B, T]
+            # text_labels : [B, N] , N: # of labels -> one-hot vector [1., 0., 0., 0., 0., 0., 0.] 형태
             
             # 원본
+            
             sample_level_preds = torch.zeros(logits_visual.shape[0]).to(device)
             for j in range(logits_visual.shape[0]):
                 tmp, _ = torch.topk(logits_visual[j, 0:feat_lengths[j]].squeeze(-1), k=int(feat_lengths[j] / 16 + 1), largest=True)
@@ -134,19 +136,17 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
                 audio_features, 
                 visual_features
             )
-
             """
             # CMAL 수정 ------------------------------------------------------------------------
             # logits_av : [B, 256]
-            sample_level_preds = torch.zeros(logits_av.shape[0]).to(device) # [B]
+            # CMAL 손실 계산 - logits_visual을 mmil_logits 대신 사용
+            sample_level_preds = torch.zeros(logits_av.shape[0]).to(device)
             for j in range(logits_av.shape[0]):
                 tmp, _ = torch.topk(logits_av[j, 0:feat_lengths[j]], k=int(feat_lengths[j] / 16 + 1), largest=True)
                 sample_level_preds[j] = torch.sigmoid(torch.mean(tmp))
 
-            # CMAL 손실 계산 - logits_visual을 mmil_logits 대신 사용
             loss_a2v_a2b, loss_a2v_a2n, loss_v2a_a2b, loss_v2a_a2n = CMAL(
-                sample_level_preds, 
-                logits_av,
+                sample_level_preds,
                 logits_audio.squeeze(-1), 
                 logits_visual.squeeze(-1), 
                 feat_lengths, 
@@ -155,7 +155,6 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
             )
             # CMAL 수정 ------------------------------------------------------------------------
             """
-            
             
             # CMAL 손실 합산 (가중치는 실험에 따라 조정)
             cmal_loss = (loss_a2v_a2b + loss_a2v_a2n + loss_v2a_a2b + loss_v2a_a2n) * 0.25
@@ -188,26 +187,18 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
                 auc, ap, mAP = test(av_model, v_model, test_loader, args.visual_length, prompt_text, gt, gtsegments, gtlabels, device)
                 sys.stdout.write(f"      [Mid-Epoch] AUC: {auc:.4f}, AP: {ap:.4f}, mAP: {mAP:.4f} \n")
                 sys.stdout.flush()
-        """
-        m = cosine_scheduler(base_value=args.m, final_value=1.0, curr_epoch=e, epochs=args.max_epoch)
-        print(f"Epoch {e+1}: Applying self-distillation with m={m:.4f}")
-
-        
-        with torch.no_grad():
-            for param_av in av_model.named_parameters():
-                if 'audio' in param_av[0]:
-                    continue
-                for param_v in v_model.named_parameters():
-                    if param_av[0] == param_v[0]:
-                        param_av[1].data.mul_(m).add_((1 - m) * param_v[1].detach().data)
-                        break
-                    elif param_av[0] == 'classifier.weight' and param_v[0] == 'classifier.weight':
-                        param_av[1].data.mul_(m).add_((1 - m) * param_v[1].detach().data)
-                        break
-                    elif param_av[0] == 'classifier.bias' and param_v[0] == 'classifier.bias':
-                        param_av[1].data.mul_(m).add_((1 - m) * param_v[1].detach().data)
-                        break
-        """
+                if ap > ap_best:
+                    ap_best = ap
+                    checkpoint = {
+                        'epoch': e,
+                        'av_model_state_dict': av_model.state_dict(),
+                        'v_model_state_dict': v_model.state_dict(),
+                        'optimizer_av_state_dict': optimizer_av.state_dict(),
+                        'optimizer_v_state_dict': optimizer_v.state_dict(),
+                        'ap': ap_best
+                    }
+                    torch.save(checkpoint, args.checkpoint_path)
+                    sys.stdout.write(f"Best model saved at Epoch {e+1}: New best AP = {ap_best:.4f} \n")
 
         scheduler_av.step()
         scheduler_v.step()
@@ -226,11 +217,7 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
                 'ap': ap_best
             }
             torch.save(checkpoint, args.checkpoint_path)
-            sys.stdout.write(f"Epoch {e+1}: New best AP = {ap_best:.4f} \n")
-        
-    checkpoint = torch.load(args.checkpoint_path)
-    torch.save(checkpoint['av_model_state_dict'], args.model_path)
-    sys.stdout.write(f"Best model saved with AP: {ap_best:.4f} \n")
+            sys.stdout.write(f"Best model saved at Epoch {e+1}: New best AP = {ap_best:.4f} \n")
 
 def setup_seed(seed):
     torch.manual_seed(seed)

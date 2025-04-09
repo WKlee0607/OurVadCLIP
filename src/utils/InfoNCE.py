@@ -19,7 +19,7 @@ class InfoNCE(nn.Module):
                         negative_mode=self.negative_mode)
 
 
-def info_nce(query, positive_key, negative_keys=None, temperature=0.1, reduction='mean', negative_mode='unpaired'):
+def info_nce(query, positive_key, negative_keys=None, temperature=0.1, reduction='mean', negative_mode='unpaired'): # q, p, n: [All-T, 512]
     # Check input dimensionality.
     if query.dim() != 2:
         raise ValueError('<query> must have 2 dimensions.')
@@ -46,16 +46,16 @@ def info_nce(query, positive_key, negative_keys=None, temperature=0.1, reduction
             raise ValueError('Vectors of <query> and <negative_keys> should have the same number of components.')
 
     # Normalize to unit vectors
-    query, positive_key, negative_keys = normalize(query, positive_key, negative_keys)
+    query, positive_key, negative_keys = normalize(query, positive_key, negative_keys) # norm
     if negative_keys is not None:
         # Explicit negative keys
 
         # Cosine between positive pairs
-        positive_logit = torch.sum(query * positive_key, dim=1, keepdim=True)
+        positive_logit = torch.sum(query * positive_key, dim=1, keepdim=True) # [All-K, 1] -> cosine similarity(Corresponding pairs)
 
         if negative_mode == 'unpaired':
             # Cosine between all query-negative combinations
-            negative_logits = query @ transpose(negative_keys)
+            negative_logits = query @ transpose(negative_keys) # [All-K, All-K]
 
         elif negative_mode == 'paired':
             query = query.unsqueeze(1)
@@ -63,7 +63,7 @@ def info_nce(query, positive_key, negative_keys=None, temperature=0.1, reduction
             negative_logits = negative_logits.squeeze(1)
 
         # First index in last dimension are the positive samples
-        logits = torch.cat([positive_logit, negative_logits], dim=1)
+        logits = torch.cat([positive_logit, negative_logits], dim=1) # [All-K, All-k+1]
         labels = torch.zeros(len(logits), dtype=torch.long, device=query.device)
     else:
         # Negative keys are implicitly off-diagonal positive keys.

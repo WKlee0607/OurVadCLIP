@@ -20,8 +20,12 @@ parser.add_argument('--m', default=0.91, type=float, help='Self-distillation mix
 parser.add_argument('--distill-weight', default=1.0, type=float, help='Weight for distillation loss')
 
 parser.add_argument('--max-epoch', default=20, type=int)
+
 parser.add_argument('--model-path', default='./save_folder/model_xd.pth') # save path
 parser.add_argument('--checkpoint-path', default='./save_folder/checkpoint.pth') # save path
+#parser.add_argument('--model-path', default='./baseline/model_xd.pth') # save path
+#parser.add_argument('--checkpoint-path', default='./baseline/checkpoint.pth') # save path
+
 parser.add_argument('--use-checkpoint', default=False, type=bool)
 parser.add_argument('--batch-size', default=96, type=int)  # Reduced batch size for dual model training
 parser.add_argument('--train-list', default='./list/xd_CLIP_rgb.csv') # data_path

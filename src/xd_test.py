@@ -1,4 +1,3 @@
-
 # xd_test.py
 import torch
 from torch import nn
@@ -98,7 +97,7 @@ def test(model, visual_model, testdataloader, maxlen, prompt_text, gt, gtsegment
     averageMAP = averageMAP/(i+1)
     print('average MAP: {:.2f}'.format(averageMAP))
 
-    return ROC_av, AP2, averageMAP
+    return ROC_av, AP_av, averageMAP
 
 
 if __name__ == '__main__':
