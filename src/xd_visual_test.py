@@ -1,5 +1,6 @@
 # xd_test.py
 import torch
+import sys
 from torch import nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -99,9 +100,13 @@ def test(model, testdataloader, maxlen, prompt_text, gt, gtsegments, gtlabels, d
             x_axis = range(target_length)
 
             ######################### gt_score 추가
-            gt_score = gt[total_len:total_len + len_cur]
-            total_len += len_cur
-            
+            gt_score = gt[total_len:total_len + len_cur*16]
+            total_len += len_cur*16
+            sys.stdout.write(f'{i}th target_length: {target_length}\n')
+            sys.stdout.write(f'{i}th total_len: {total_len}/{gt.shape[0]}\n')
+            sys.stdout.write(f'{i}th gt_score: {gt_score.shape[0]}\n')
+            sys.stdout.flush()
+
             if len(gt_score) != target_length:
                 gt_score = upsample_array(gt_score, target_length)
 
