@@ -367,8 +367,8 @@ class CLIPVAD(nn.Module):
         logits_audio = self.audio_classifier(audio_features + self.mlp2(audio_features))
         
         combined_features = torch.cat([visual_features, audio_features], dim=-1)
-        logits_av_3d = self.av_classifier(combined_features)  # 3차원 텐서 [batch_size, seq_len, 1]
-        logits_av = logits_av_3d.squeeze(-1)  # 2차원 텐서 [batch_size, seq_len]
+        logits_av_3d = self.av_classifier(combined_features)  # 3차원 텐서 [batch_size, seq_len, 1] -> [B, 256, 1]
+        logits_av = logits_av_3d.squeeze(-1)  # 2차원 텐서 [batch_size, seq_len] -> [B, 256]
         
         logits1 = torch.maximum(logits_visual, logits_audio)
         
@@ -389,3 +389,4 @@ class CLIPVAD(nn.Module):
         text_features_norm = text_features / text_features.norm(dim=-1, keepdim=True)
         text_features_norm = text_features_norm.permute(0, 2, 1)
         logits2 = visual_features_norm @ text_features_norm.type(visual_features_norm.dtype) / 0.07
+        return text_features_ori, logits1, logits2, logits_visual, logits_audio, logits_av

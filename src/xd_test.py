@@ -54,7 +54,7 @@ def test(model, visual_model, testdataloader, maxlen, prompt_text, gt, gtsegment
             #v_features, v_logits = visual_model(visual, padding_mask, lengths) # for Coarse
             
             # logits_av의 shape를 1차원으로 reshape하여 확률 계산에 사용
-            logits_av = logits_av.reshape(-1) # 원본
+            logits_av = logits_av.reshape(-1) # 원본 -> 
             #v_logits = v_logits.squeeze(-1).reshape(-1)
             logits2 = logits2.reshape(logits2.shape[0] * logits2.shape[1], logits2.shape[2])
             
@@ -80,9 +80,16 @@ def test(model, visual_model, testdataloader, maxlen, prompt_text, gt, gtsegment
     ap_av = ap_av.tolist()
     ap2 = ap2.tolist()
 
+    #import sys
+    #sys.stdout.write(f'gt: {gt}\n') # tensor: [0., 0., 1., 0., 1., ] -> label 인듯
+    #sys.stdout.write(f'ap_av: {ap_av}\n') # list: [score: 0.372, 0.405.., .... 등등]
+    #sys.stdout.write(f'gt.shape: {gt.shape}\n') # [B]
+    #sys.stdout.write(f'ap_av.shape: {ap_av.shape}\n')
+    #sys.stdout.flush()
+
     # logits_av를 사용한 분류 성능 계산
     ROC_av = roc_auc_score(gt, np.repeat(ap_av, 16))
-    AP_av = average_precision_score(gt, np.repeat(ap_av, 16))
+    AP_av = average_precision_score(gt, np.repeat(ap_av, 16)) # y_true, y_score 
     ROC2 = roc_auc_score(gt, np.repeat(ap2, 16))
     AP2 = average_precision_score(gt, np.repeat(ap2, 16))
 
@@ -123,3 +130,7 @@ if __name__ == '__main__':
     model.load_state_dict(model_param)
 
     test(model, test_loader, args.visual_length, prompt_text, gt, gtsegments, gtlabels, device)
+
+
+
+
