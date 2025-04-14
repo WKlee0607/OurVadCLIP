@@ -209,12 +209,12 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
             #loss4 = CLAS2(a_logits.squeeze(-1), text_labels, feat_lengths, device)
             #loss5 = CLAS2(v_logits.squeeze(-1), text_labels, feat_lengths, device)
 
-            #loss4 = DISTILL(logits_av, a_logits.squeeze(-1), 3.0) 
-            #loss5 = DISTILL(logits_av, v_logits.squeeze(-1), 3.0)
+            loss4 = DISTILL(logits_av, a_logits.squeeze(-1), 3.0) 
+            loss5 = DISTILL(logits_av, v_logits.squeeze(-1), 3.0)
 
             # Chain Distillation
-            loss4 = (DISTILL(logits_av, a_logits.squeeze(-1), 3.0) + DISTILL(a_logits.squeeze(-1), logits_av, 3.0)) * 0.5
-            loss5 = (DISTILL(logits_av, v_logits.squeeze(-1), 3.0) + DISTILL(v_logits.squeeze(-1), logits_av, 3.0)) * 0.5
+            #loss4 = (DISTILL(logits_av, a_logits.squeeze(-1), 3.0) + DISTILL(a_logits.squeeze(-1), logits_av, 3.0)) * 0.5
+            #loss5 = (DISTILL(logits_av, v_logits.squeeze(-1), 3.0) + DISTILL(v_logits.squeeze(-1), logits_av, 3.0)) * 0.5
 
             #sys.stdout.write(f'logits_visual.squeeze(-1): {logits_visual.squeeze(-1).shape}\n') # [B, 256]
             #sys.stdout.write(f'logits2.shape {logits2.shape}\n') # [B, 256, 7]
@@ -256,7 +256,6 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
             #for j in range(logits_av.shape[0]):
             #    tmp, _ = torch.topk(logits_av[j, 0:feat_lengths[j]], k=int(feat_lengths[j] / 16 + 1), largest=True)
             #    sample_level_preds[j] = torch.sigmoid(torch.mean(tmp))
-
             loss_a2v_a2b, loss_a2v_a2n, loss_v2a_a2b, loss_v2a_a2n = CMAL(
                 text_labels, 
                 a_logits.squeeze(-1), 
