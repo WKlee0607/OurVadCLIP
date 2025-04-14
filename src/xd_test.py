@@ -50,7 +50,7 @@ def test(model, visual_model, testdataloader, maxlen, prompt_text, gt, gtsegment
             padding_mask = get_batch_mask(lengths, maxlen).to(device)
             
             # 모델 출력: logits1 대신 logits_av를 사용하도록 수정
-            _, _, logits2, logits_visual, logits_audio, logits_av = model(visual, audio, padding_mask, prompt_text, lengths) # for Fine
+            text_features, logits1, logits2, logits_av, v_logits, a_logits = model(visual, audio, padding_mask, prompt_text, lengths) # for Fine
             #v_features, v_logits = visual_model(visual, padding_mask, lengths) # for Coarse
             
             # logits_av의 shape를 1차원으로 reshape하여 확률 계산에 사용
@@ -104,7 +104,7 @@ def test(model, visual_model, testdataloader, maxlen, prompt_text, gt, gtsegment
     averageMAP = averageMAP/(i+1)
     print('average MAP: {:.2f}'.format(averageMAP))
 
-    return ROC_av, AP_av, averageMAP
+    return ROC_av, AP2, averageMAP
 
 
 if __name__ == '__main__':

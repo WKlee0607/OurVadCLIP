@@ -21,12 +21,11 @@ parser.add_argument('--distill-weight', default=1.0, type=float, help='Weight fo
 
 parser.add_argument('--max-epoch', default=20, type=int)
 
-parser.add_argument('--model-path', default='./baseline/checkpoint.pth') # save path
+parser.add_argument('--model-path', default='./baseline/model_xd.pth') # save path
 parser.add_argument('--checkpoint-path', default='./baseline/checkpoint.pth') # save path
-#parser.add_argument('--model-path', default='./save_folder/model_xd.pth') # save path
-#parser.add_argument('--checkpoint-path', default='./save_folder/checkpoint.pth') # save path
+#parser.add_argument('--model-path', default='./save_folder4/model_xd.pth') # save path
+#parser.add_argument('--checkpoint-path', default='./save_folder4/checkpoint.pth') # save path
 #parser.add_argument('--model-path', default='./baseline/model_xd.pth') # save path
-#parser.add_argument('--checkpoint-path', default='./baseline/checkpoint.pth') # save path
 
 parser.add_argument('--use-checkpoint', default=False, type=bool)
 parser.add_argument('--batch-size', default=96, type=int)  # Reduced batch size for dual model training

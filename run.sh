@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-#SBATCH -J Train_XD_ver
+#SBATCH -J Train_XD
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-gpu=8
 #SBATCH --mem-per-gpu=32G
