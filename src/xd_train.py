@@ -209,7 +209,7 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
             #loss4 = CLAS2(a_logits.squeeze(-1), text_labels, feat_lengths, device)
             #loss5 = CLAS2(v_logits.squeeze(-1), text_labels, feat_lengths, device)
 
-            loss4 = DISTILL(logits_av, a_logits.squeeze(-1), 3.0) 
+            loss4 = DISTILL(logits_av, a_logits.squeeze(-1), 3.0)
             loss5 = DISTILL(logits_av, v_logits.squeeze(-1), 3.0)
 
             # Chain Distillation

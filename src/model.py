@@ -269,7 +269,11 @@ class CLIPVAD(nn.Module):
             ("c_proj", nn.Linear(visual_width * 4, visual_width))
         ]))
         ###### ---------추가된 부분---------------------------------------------
-        p = 0.2
+        #init_w = 1.0
+        #self.scale_v = nn.Parameter(torch.full([], float(init_w)))
+        #self.scale_a = nn.Parameter(torch.full([], float(init_w)))
+        
+        p = 0.4 # 0.2
         self.classifier =  nn.Sequential(
             nn.Linear(visual_width, visual_width // 4),
             QuickGELU(),
@@ -416,22 +420,27 @@ class CLIPVAD(nn.Module):
 
         # ----- Feature Fusion
         # 원본
+        """
         combined_features = torch.cat([visual_features, audio_features], dim=-1) # [B, 256, 1024]
         logits_av_3d = self.av_classifier(combined_features)  # 3차원 텐서 [batch_size, seq_len, 1] -> [B, 256, 1]
         logits_av = logits_av_3d.squeeze(-1)  # 2차원 텐서 [batch_size, seq_len] -> [B, 256]
+        """
+        # 수정본
+        combined_features = torch.cat([visual_features, audio_features], dim=-1) # [B, 256, 1024]
+        logits_av_3d = self.av_classifier(combined_features)  # 3차원 텐서 [batch_size, seq_len, 1] -> [B, 256, 1]
+        logits_av = logits_av_3d.squeeze(-1)  # 2차원 텐서 [batch_size, seq_len] -> [B, 256]
+        
 
-        # ----- Aggregation
+        # ----- Aggregation -> [B, 1, 512]가 나와야 함.
         # 원본
         logits_attn = logits_av_3d.permute(0, 2, 1) # 원본 # [batch_size, 1, seq_len]
         #logits_attn = logits_visual.permute(0, 2, 1) # 수정
-        
         visual_attn = logits_attn @ visual_features # [B, 1, 256] @ [B, 256, 512] = [B, 1, 512] => 비디오를 하나의 피쳐로 압축
         visual_attn = visual_attn / visual_attn.norm(dim=-1, keepdim=True) # [B, 1, 512]
-        
         # 수정본
+        
 
-        
-        
+
         # ----- Aggregation - expand
         visual_attn = visual_attn.expand(visual_attn.shape[0], text_features_ori.shape[0], visual_attn.shape[2]) # [B, N, 512]
         text_features = text_features_ori.unsqueeze(0) # [1, N, 512]
