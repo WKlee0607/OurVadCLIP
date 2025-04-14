@@ -50,7 +50,8 @@ def test(model, visual_model, testdataloader, maxlen, prompt_text, gt, gtsegment
             padding_mask = get_batch_mask(lengths, maxlen).to(device)
             
             # 모델 출력: logits1 대신 logits_av를 사용하도록 수정
-            text_features, logits1, logits2, logits_av, v_logits, a_logits = model(visual, audio, padding_mask, prompt_text, lengths) # for Fine
+            #text_features, logits1, logits2, logits_av, v_logits, a_logits = model(visual, audio, padding_mask, prompt_text, lengths) # for Fine
+            text_features, logtis1, logits2, v_logits, a_logits, logits_av = model(visual, audio, padding_mask, prompt_text, lengths) # for Fine
             #v_features, v_logits = visual_model(visual, padding_mask, lengths) # for Coarse
             
             # logits_av의 shape를 1차원으로 reshape하여 확률 계산에 사용

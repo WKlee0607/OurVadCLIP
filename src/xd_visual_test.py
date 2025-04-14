@@ -66,7 +66,7 @@ def test(model, testdataloader, maxlen, prompt_text, gt, gtsegments, gtlabels, d
             padding_mask = get_batch_mask(lengths, maxlen).to(device)
             
             # 모델 출력: logits1 대신 logits_av를 사용하도록 수정
-            _, _, logits2, logits_visual, logits_audio, logits_av = model(
+            text_features, logtis1, logits2, v_logits, a_logits, logits_av = model(
                 visual, audio, padding_mask, prompt_text, lengths)
                 
             # logits_av의 shape를 1차원으로 reshape하여 확률 계산에 사용
@@ -91,9 +91,9 @@ def test(model, testdataloader, maxlen, prompt_text, gt, gtsegments, gtlabels, d
             
             # ------------------ 개별 데이터 샘플 시각화 ------------------
             # 각 모달리티별 프레임 단위 스코어 계산 (sigmoid 적용)
-            prob_visual = torch.sigmoid(logits_visual[0:len_cur]).cpu().numpy().squeeze()
-            prob_audio = torch.sigmoid(logits_audio[0:len_cur]).cpu().numpy().squeeze()
-            prob_av_sample = prob_av.cpu().numpy().squeeze()  # 결합된(visual–audio) 스코어
+            prob_visual = torch.sigmoid(v_logits[0:len_cur]).cpu().numpy().squeeze()
+            prob_audio = torch.sigmoid(a_logits[0:len_cur]).cpu().numpy().squeeze()
+            prob_av_sample = prob2.cpu().numpy().squeeze()  # 결합된(visual–audio) 스코어
 
             # x축: visual 점수의 길이를 기준으로 함
             target_length = len(prob_visual)
