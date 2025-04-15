@@ -209,8 +209,17 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
             #loss4 = CLAS2(a_logits.squeeze(-1), text_labels, feat_lengths, device)
             #loss5 = CLAS2(v_logits.squeeze(-1), text_labels, feat_lengths, device)
 
-            loss4 = DISTILL(logits_av, a_logits.squeeze(-1), 3.0)
-            loss5 = DISTILL(logits_av, v_logits.squeeze(-1), 3.0)
+            # Distillation
+            #loss4 = DISTILL(logits_av, a_logits.squeeze(-1), 3.0)
+            #loss5 = DISTILL(logits_av, v_logits.squeeze(-1), 3.0)
+
+            # Chain-each branches & BCE_Audio & Distill_av_to_v
+            #loss4 = DISTILL(v_logits.squeeze(-1), a_logits.squeeze(-1), 3.0) + DISTILL(a_logits.squeeze(-1), v_logits.squeeze(-1), 3.0) # Chain-each branches
+            loss5 = DISTILL(logits_av, v_logits.squeeze(-1), 3.0) # Distill_av_to_v
+            loss6 = CLAS2(a_logits.squeeze(-1), text_labels, feat_lengths, device) # BCE_Audio
+            loss7 = DISTILL(logits_av, a_logits.squeeze(-1), 3.0) + DISTILL(a_logits.squeeze(-1), logits_av, 3.0) # Chain-av-audio
+
+            added_loss = loss5 + loss6 + loss7 #+ loss4
 
             # Chain Distillation
             #loss4 = (DISTILL(logits_av, a_logits.squeeze(-1), 3.0) + DISTILL(a_logits.squeeze(-1), logits_av, 3.0)) * 0.5
@@ -277,7 +286,7 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
             
 
             # 최종 손실 계산 (CMAL 손실 추가)
-            loss_av = loss1 + loss2 + loss3 * 1e-4 + cmal_loss + loss4 + loss5
+            loss_av = loss1 + loss2 + loss3 * 1e-4 + cmal_loss + added_loss
             
             optimizer_v.zero_grad()
             optimizer_v.step()
