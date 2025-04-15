@@ -214,12 +214,12 @@ def train(av_model, v_model, train_loader, test_loader, args, label_map: dict, d
             #loss5 = DISTILL(logits_av, v_logits.squeeze(-1), 3.0)
 
             # Chain-each branches & BCE_Audio & Distill_av_to_v
-            #loss4 = DISTILL(v_logits.squeeze(-1), a_logits.squeeze(-1), 3.0) + DISTILL(a_logits.squeeze(-1), v_logits.squeeze(-1), 3.0) # Chain-each branches
+            loss4 = DISTILL(v_logits.squeeze(-1), a_logits.squeeze(-1), 3.0) + DISTILL(a_logits.squeeze(-1), v_logits.squeeze(-1), 3.0) # Chain-each branches
             loss5 = DISTILL(logits_av, v_logits.squeeze(-1), 3.0) # Distill_av_to_v
             loss6 = CLAS2(a_logits.squeeze(-1), text_labels, feat_lengths, device) # BCE_Audio
-            loss7 = DISTILL(logits_av, a_logits.squeeze(-1), 3.0) + DISTILL(a_logits.squeeze(-1), logits_av, 3.0) # Chain-av-audio
+            #loss7 = DISTILL(logits_av, a_logits.squeeze(-1), 3.0) + DISTILL(a_logits.squeeze(-1), logits_av, 3.0) # Chain-av-audio
 
-            added_loss = loss5 + loss6 + loss7 #+ loss4
+            added_loss = loss5 + loss6 + loss4
 
             # Chain Distillation
             #loss4 = (DISTILL(logits_av, a_logits.squeeze(-1), 3.0) + DISTILL(a_logits.squeeze(-1), logits_av, 3.0)) * 0.5
