@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-#SBATCH -J Feat_extract_Test
+#SBATCH -J Feat_extract_UCF
 #SBATCH --gres=gpu:4
 #SBATCH --cpus-per-gpu=8
 #SBATCH --mem-per-gpu=32G
@@ -13,7 +13,7 @@ pwd
 which python
 
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
-python ./extract_feat/main_ucf.py
+python ./extract_feat/main_ucf_vgg.py
 
 exit 0
 

@@ -21,14 +21,17 @@ def test(model, testdataloader, maxlen, prompt_text, gt, gtsegments, gtlabels, d
     with torch.no_grad():
         for i, item in enumerate(testdataloader):
             visual = item[0].squeeze(0)
-            length = item[2]
+            audio = item[1].squeeze(0)
+            length = item[3]
 
             length = int(length)
             len_cur = length
             if len_cur < maxlen:
                 visual = visual.unsqueeze(0)
+                audio = audio.unsqueeze(0)
 
             visual = visual.to(device)
+            audio = audio.to(device)
 
             lengths = torch.zeros(int(length / maxlen) + 1)
             for j in range(int(length / maxlen) + 1):
@@ -44,8 +47,12 @@ def test(model, testdataloader, maxlen, prompt_text, gt, gtsegments, gtlabels, d
                     lengths[j] = length
             lengths = lengths.to(int)
             padding_mask = get_batch_mask(lengths, maxlen).to(device)
-            _, logits1, logits2 = model(visual, padding_mask, prompt_text, lengths)
-            logits1 = logits1.reshape(logits1.shape[0] * logits1.shape[1], logits1.shape[2])
+
+            #_, logits1, logits2 = model(visual, padding_mask, prompt_text, lengths)
+            text_features, logtis1, logits2, v_logits, a_logits, logits_av = model(visual, audio, None, prompt_text, lengths)
+
+            logits_av = logits_av.unsqueeze(-1)
+            logits1 = logits_av.reshape(logits_av.shape[0] * logits_av.shape[1], logits_av.shape[2])
             logits2 = logits2.reshape(logits2.shape[0] * logits2.shape[1], logits2.shape[2])
             prob2 = (1 - logits2[0:len_cur].softmax(dim=-1)[:, 0].squeeze(-1))
             prob1 = torch.sigmoid(logits1[0:len_cur].squeeze(-1))
@@ -83,8 +90,7 @@ def test(model, testdataloader, maxlen, prompt_text, gt, gtsegments, gtlabels, d
     averageMAP = averageMAP/(i+1)
     print('average MAP: {:.2f}'.format(averageMAP))
 
-    return ROC1, AP1
-
+    return ROC2, AP1
 
 if __name__ == '__main__':
     device = "cuda" if torch.cuda.is_available() else "cpu"

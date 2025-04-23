@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 import torch
 import torch.utils.data as data
 import pandas as pd
@@ -6,6 +7,7 @@ import os
 import re
 import utils.tools as tools
 
+import sys
 class XDDataset(data.Dataset):
     def __init__(self, clip_dim: int, file_path: str, audio_list: str, test_mode: bool, label_map: dict):
         self.df = pd.read_csv(file_path)
@@ -22,7 +24,8 @@ class XDDataset(data.Dataset):
             audio_path = row['path']
             # Extract the base key (without __vggish.npy part)
             # Example: Bad.Boys.1995__#00-26-51_00-27-53_label_B2-0-0
-            audio_key = os.path.basename(audio_path).replace('__vggish.npy', '')
+            #audio_key = os.path.basename(audio_path).replace('__vggish.npy', '') # vggish
+            audio_key = os.path.basename(audio_path).replace('.npy', '') # wav2clip
             self.video_to_audio[audio_key] = audio_path
         
     def __len__(self):
@@ -30,8 +33,7 @@ class XDDataset(data.Dataset):
 
     def __getitem__(self, index):
         visual_path = self.df.loc[index]['path']
-        clip_feature = np.load(visual_path)
-        
+        clip_feature = np.load(visual_path) # [T, 512]
         # Extract visual file key (removing the __number.npy part)
         # Example: /data/.../Bad.Boys.1995__#00-26-51_00-27-53_label_B2-0-0__0.npy
         # -> Bad.Boys.1995__#00-26-51_00-27-53_label_B2-0-0
@@ -44,11 +46,13 @@ class XDDataset(data.Dataset):
             try:
                 audio_feature = np.load(audio_path)
             except:
-                print(f"Warning: Failed to load audio feature from {audio_path}")
-                audio_feature = np.zeros((clip_feature.shape[0], 128), dtype=np.float32)
+                sys.stdout.write(f"Warning: Failed to load audio feature from {audio_path}\n")
+                sys.stdout.flush()
+                audio_feature = np.zeros((clip_feature.shape[0], 512)) # 128: vggish
         else:
-            print(f"Warning: No matching audio for visual key {visual_key}")
-            audio_feature = np.zeros((clip_feature.shape[0], 128), dtype=np.float32)
+            sys.stdout.write(f"Warning: No matching audio for visual key {visual_key}\n")
+            sys.stdout.flush()
+            audio_feature = np.zeros((clip_feature.shape[0], 512)) # 128: vggish
             
         if self.test_mode == False:
             clip_feature, audio_feature, clip_length = tools.process_feat_audio(clip_feature, audio_feature, self.clip_dim)
@@ -80,7 +84,8 @@ class UCFDataset(data.Dataset):
         self.video_to_audio = {}
         for _, row in self.audio_df.iterrows():
             audio_path = row['path']
-            audio_key = os.path.basename(audio_path).replace('__vggish.npy', '')
+            audio_key = re.sub(r'__\d+\.npy$', '', os.path.basename(audio_path))#.replace('_0.npy', '')
+            audio_path = re.sub(r'__\d+\.npy$', '_0.npy', audio_path)
             self.video_to_audio[audio_key] = audio_path
         
     def __len__(self):
@@ -93,6 +98,9 @@ class UCFDataset(data.Dataset):
         # Extract visual file key (removing the __number.npy part)
         visual_basename = os.path.basename(visual_path)
         visual_key = re.sub(r'__\d+\.npy$', '', visual_basename)
+
+        #sys.stdout.write(f'visual_key: {visual_key} \n')
+        #sys.stdout.flush()
         
         # Try to get corresponding audio feature
         if visual_key in self.video_to_audio:
