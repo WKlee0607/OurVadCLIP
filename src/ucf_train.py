@@ -114,11 +114,12 @@ def train(model, normal_loader, anomaly_loader, testloader, args, label_map, dev
             loss3 = loss3 / 13 * 1e-1
 
             # 추가
-            loss4 = DISTILL(v_logits.squeeze(-1), a_logits.squeeze(-1), 3.0) + DISTILL(a_logits.squeeze(-1), v_logits.squeeze(-1), 3.0) # Chain-each branches
+            loss4_1 = DISTILL(v_logits.squeeze(-1), a_logits.squeeze(-1), 3.0) # Chain-each branches
+            loss4_2 = DISTILL(a_logits.squeeze(-1), v_logits.squeeze(-1), 3.0) # Chain-each branches
             loss5 = DISTILL(logits_av, v_logits.squeeze(-1), 3.0) # Distill_av_to_v
             loss6 = CLAS2(a_logits.squeeze(-1), text_labels, feat_lengths, device) # BCE_Audio
 
-            added_loss = loss4 + loss5 + loss6
+            added_loss = loss6 + loss4_1 + loss4_2 + loss5 * 5e-1
 
             # CMAL loss
             # CMAL 수정 ------------------------------------------------------------------------
@@ -143,7 +144,7 @@ def train(model, normal_loader, anomaly_loader, testloader, args, label_map, dev
                 loss_total_cmal += cmal_loss  # float인 경우 직접 더함
 
             # 추가
-            loss = loss1 + loss2 + loss3 + added_loss + cmal_loss
+            loss = loss1 + loss2 + loss3 * 1e-4 + added_loss + cmal_loss
 
             optimizer.zero_grad()
             loss.backward()

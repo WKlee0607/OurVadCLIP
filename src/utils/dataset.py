@@ -24,8 +24,8 @@ class XDDataset(data.Dataset):
             audio_path = row['path']
             # Extract the base key (without __vggish.npy part)
             # Example: Bad.Boys.1995__#00-26-51_00-27-53_label_B2-0-0
-            #audio_key = os.path.basename(audio_path).replace('__vggish.npy', '') # vggish
-            audio_key = os.path.basename(audio_path).replace('.npy', '') # wav2clip
+            audio_key = os.path.basename(audio_path).replace('__vggish.npy', '') # vggish
+            #audio_key = os.path.basename(audio_path).replace('.npy', '') # wav2clip
             self.video_to_audio[audio_key] = audio_path
         
     def __len__(self):
@@ -48,11 +48,11 @@ class XDDataset(data.Dataset):
             except:
                 sys.stdout.write(f"Warning: Failed to load audio feature from {audio_path}\n")
                 sys.stdout.flush()
-                audio_feature = np.zeros((clip_feature.shape[0], 512)) # 128: vggish
+                audio_feature = np.zeros((clip_feature.shape[0], 128)) # 128: vggish / 512: wav2clip
         else:
             sys.stdout.write(f"Warning: No matching audio for visual key {visual_key}\n")
             sys.stdout.flush()
-            audio_feature = np.zeros((clip_feature.shape[0], 512)) # 128: vggish
+            audio_feature = np.zeros((clip_feature.shape[0], 128)) # 128: vggish / 512: wav2clip
             
         if self.test_mode == False:
             clip_feature, audio_feature, clip_length = tools.process_feat_audio(clip_feature, audio_feature, self.clip_dim)

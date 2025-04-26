@@ -2,7 +2,8 @@ import subprocess
 import os
 
 mp4_path = "/local_datasets/UCF_Crimes/Origin/Videos" # Categories
-audio_path = "/local_datasets/UCF_Crimes/Recon/Mel/CFG4.5_dopri5_26_gen_wav_16k_80"
+#audio_path = "/local_datasets/UCF_Crimes/Recon/Mel/CFG4.5_dopri5_26_gen_wav_16k_80"
+audio_path = "/data/datasets/ucf-crime/Recon/Mel/CFG4.5_dopri5_26_gen_wav_16k_80"
 wav2clip_feat_path = "/local_datasets/UCF_Crimes/features/audio/vggish" #"/local_datasets/XD-violence/features/audio/wav2clip-features/test" # "/local_datasets/XD-violence/features/audio/wav2clip-features/train"
 
 # ----- 메모 ------------------------------

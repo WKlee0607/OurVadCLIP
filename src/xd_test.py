@@ -12,10 +12,57 @@ from utils.tools import get_batch_mask, get_prompt_text
 from utils.xd_detectionMAP import getDetectionMAP as dmAP
 import xd_option
 
+# -------------------- 추가 --------------------
+class GaussianSmoothing1D_AutoKernel(nn.Module):
+    def __init__(self, sigma: float, truncate: float = 4.0):
+        """
+        sigma를 기준으로 kernel_size를 자동 설정하는 Gaussian Smoothing
+        Args:
+            sigma (float): standard deviation of the Gaussian
+            truncate (float): 몇 sigma까지만 사용할지 (default=4.0, scipy와 같음)
+        """
+        super().__init__()
+        
+        # kernel_size 자동 계산: kernel_size = 2 * truncate * sigma + 1
+        kernel_size = int(2 * truncate * sigma + 1)
+        if kernel_size % 2 == 0:
+            kernel_size += 1  # kernel_size는 무조건 홀수로
+        
+        # 1D Gaussian kernel 생성
+        half = kernel_size // 2
+        x = torch.arange(-half, half + 1, dtype=torch.float32)
+        kernel = torch.exp(-0.5 * (x / sigma) ** 2)
+        kernel = kernel / kernel.sum()
+
+        # conv1d용 필터 weight 등록
+        self.register_buffer('weight', kernel.view(1, 1, -1))  # (out_channels=1, in_channels=1, kernel_size)
+        self.padding = half
+
+    def forward(self, x: torch.Tensor):
+        """
+        Args:
+            x (torch.Tensor): shape (N,) or (batch_size, N)
+        Returns:
+            smoothed_x (torch.Tensor)
+        """
+        if x.dim() == 1:
+            x = x.unsqueeze(0).unsqueeze(0)  # (1, 1, N)
+        elif x.dim() == 2:
+            x = x.unsqueeze(1)  # (batch_size, 1, N)
+
+        smoothed = F.conv1d(x, self.weight, padding=self.padding)
+        return smoothed.squeeze(0).squeeze(0)
+# -------------------- 추가 --------------------
+
+
 #def test(model, testdataloader, maxlen, prompt_text, gt, gtsegments, gtlabels, device):
 def test(model, visual_model, testdataloader, maxlen, prompt_text, gt, gtsegments, gtlabels, device):    
     model.to(device)
     model.eval()
+
+    # -------------------- 추가 --------------------
+    smoother = GaussianSmoothing1D_AutoKernel(sigma=1.0).to(device)
+    # -------------------- 추가 --------------------
 
     element_logits2_stack = []
 
@@ -48,29 +95,24 @@ def test(model, visual_model, testdataloader, maxlen, prompt_text, gt, gtsegment
                     lengths[j] = length
             lengths = lengths.to(int)
             padding_mask = get_batch_mask(lengths, maxlen).to(device)
-            
-            # 모델 출력: logits1 대신 logits_av를 사용하도록 수정
-            #text_features, logits1, logits2, logits_av, v_logits, a_logits = model(visual, audio, padding_mask, prompt_text, lengths) # for Fine
             text_features, logtis1, logits2, v_logits, a_logits, logits_av = model(visual, audio, padding_mask, prompt_text, lengths) # for Fine
-            #v_features, v_logits = visual_model(visual, padding_mask, lengths) # for Coarse
             
-            # logits_av의 shape를 1차원으로 reshape하여 확률 계산에 사용
-            logits_av = logits_av.reshape(-1) # 원본 -> 
-            #v_logits = v_logits.squeeze(-1).reshape(-1)
+            logits_av = logits_av.reshape(-1) 
             logits2 = logits2.reshape(logits2.shape[0] * logits2.shape[1], logits2.shape[2])
-            
-            # logits_av를 sigmoid를 통해 이진 분류 확률로 변환
-            # logits2는 기존 방식대로 처리
-            prob_av = torch.sigmoid(logits_av[0:len_cur]) # 원본
-            #prob_av = torch.sigmoid(v_logits[0:len_cur])
+        
+            prob_av = torch.sigmoid(logits_av[0:len_cur]) 
             prob2 = (1 - logits2[0:len_cur].softmax(dim=-1)[:, 0].squeeze(-1))
 
             if i == 0:
-                ap_av = prob_av
-                ap2 = prob2
+                #ap_av = prob_av # 원본
+                #ap2 = prob2 # 원본
+                ap_av = smoother(prob_av) # 수정본
+                ap2 = smoother(prob2) # 수정본
             else:
-                ap_av = torch.cat([ap_av, prob_av], dim=0)
-                ap2 = torch.cat([ap2, prob2], dim=0)
+                #ap_av = torch.cat([ap_av, prob_av], dim=0) # 원본
+                #ap2 = torch.cat([ap2, prob2], dim=0) # 원본
+                ap_av = torch.cat([ap_av, smoother(prob_av)], dim=0) # 수정본
+                ap2 = torch.cat([ap2, smoother(prob2)], dim=0) # 수정본
 
             element_logits2 = logits2[0:len_cur].softmax(dim=-1).detach().cpu().numpy()
             element_logits2 = np.repeat(element_logits2, 16, 0)
@@ -109,7 +151,7 @@ def test(model, visual_model, testdataloader, maxlen, prompt_text, gt, gtsegment
 
 
 if __name__ == '__main__':
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
     args = xd_option.parser.parse_args()
 
     label_map = dict({'A': 'normal', 'B1': 'fighting', 'B2': 'shooting', 'B4': 'riot', 
@@ -128,9 +170,12 @@ if __name__ == '__main__':
                     args.prompt_postfix, args.audio_dim, device)
                    
     model_param = torch.load(args.model_path)
-    model.load_state_dict(model_param)
+    model.load_state_dict(model_param['av_model_state_dict'])
 
-    test(model, test_loader, args.visual_length, prompt_text, gt, gtsegments, gtlabels, device)
+    #model_param = torch.load(args.checkpoint_path) # for UCF
+    #model.load_state_dict(model_param['model_state_dict']) # for UCF
+
+    test(model, None, test_loader, args.visual_length, prompt_text, gt, gtsegments, gtlabels, device)
 
 
 
